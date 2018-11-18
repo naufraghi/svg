@@ -90,7 +90,7 @@ class Transformable:
             op = op.strip()
             # Keep only numbers
             arg = [float(x) for x in re.findall(number_re, arg)]
-            print('transform: ' + op + ' '+ str(arg))
+            # print('transform: ' + op + ' '+ str(arg))
 
             if op == 'matrix':
                 self.matrix *= Matrix(arg)
