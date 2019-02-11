@@ -377,6 +377,7 @@ class Path(Transformable):
             # Close Path
                 l = Segment(current_pt, start_pt)
                 self.items.append(l)
+                current_pt = start_pt
 
 
             elif command in 'LHV':
@@ -720,4 +721,3 @@ for name, cls in inspect.getmembers(sys.modules[__name__], inspect.isclass):
     tag = getattr(cls, 'tag', None)
     if tag:
         svgClass[svg_ns + tag] = cls
-
