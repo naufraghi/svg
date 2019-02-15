@@ -259,7 +259,8 @@ class Group(Transformable):
             elt_class = svgClass.get(elt.tag, None)
             if elt_class is None:
                 if not ('title' in elt.tag or 'image' in elt.tag):
-                    print('No handler for element %s' % elt.tag)
+                    if __debug__:
+                        print('No handler for element %s' % elt.tag)
                 continue
             # instanciate elt associated class (e.g. <path>: item = Path(elt)
             item = elt_class(elt)
