@@ -35,27 +35,29 @@ unit_re = r'em|ex|px|in|cm|mm|pt|pc|%'
 
 # Unit converter
 unit_convert = {
-        None: 1,           # Default unit (same as pixel)
-        'px': 1,           # px: pixel. Default SVG unit
-        'em': 10,          # 1 em = 10 px FIXME
-        'ex': 5,           # 1 ex =  5 px FIXME
-        'in': 96,          # 1 in = 96 px
-        'cm': 96 / 2.54,   # 1 cm = 1/2.54 in
-        'mm': 96 / 25.4,   # 1 mm = 1/25.4 in
-        'pt': 96 / 72.0,   # 1 pt = 1/72 in
-        'pc': 96 / 6.0,    # 1 pc = 1/6 in
-        '%' :  1 / 100.0   # 1 percent
-        }
+    None: 1,  # Default unit (same as pixel)
+    'px': 1,  # px: pixel. Default SVG unit
+    'em': 10,  # 1 em = 10 px FIXME
+    'ex': 5,  # 1 ex =  5 px FIXME
+    'in': 96,  # 1 in = 96 px
+    'cm': 96 / 2.54,  # 1 cm = 1/2.54 in
+    'mm': 96 / 25.4,  # 1 mm = 1/25.4 in
+    'pt': 96 / 72.0,  # 1 pt = 1/72 in
+    'pc': 96 / 6.0,  # 1 pc = 1/6 in
+    '%': 1 / 100.0  # 1 percent
+}
+
 
 class Transformable:
     '''Abstract class for objects that can be geometrically drawn & transformed'''
+
     def __init__(self, elt=None):
         # a 'Transformable' is represented as a list of Transformable items
         self.items = []
         self.id = hex(id(self))
         # Unit transformation matrix on init
         self.matrix = Matrix()
-        self.viewport = Point(800, 600) # default viewport is 800x600
+        self.viewport = Point(800, 600)  # default viewport is 800x600
         if elt is not None:
             self.id = elt.get('id', self.id)
             # Parse transform attibute to update self.matrix
@@ -69,21 +71,19 @@ class Transformable:
         ymin = min([b[0].y for b in bboxes])
         ymax = max([b[1].y for b in bboxes])
 
-        return (Point(xmin,ymin), Point(xmax,ymax))
+        return (Point(xmin, ymin), Point(xmax, ymax))
 
     # Parse transform field
     def getTransformations(self, elt):
         t = elt.get('transform')
         if t is None: return
 
-        svg_transforms = [
-                'matrix', 'translate', 'scale', 'rotate', 'skewX', 'skewY']
+        svg_transforms = ['matrix', 'translate', 'scale', 'rotate', 'skewX', 'skewY']
 
         # match any SVG transformation with its parameter (until final parenthese)
         # [^)]*    == anything but a closing parenthese
         # '|'.join == OR-list of SVG transformations
-        transforms = re.findall(
-                '|'.join([x + '[^)]*\)' for x in svg_transforms]), t)
+        transforms = re.findall('|'.join([x + r'[^)]*\)' for x in svg_transforms]), t)
 
         for t in transforms:
             op, arg = t.split('(')
@@ -153,12 +153,13 @@ class Transformable:
             if mode == 'y':
                 return float(value) * unit_convert[unit] * self.viewport.y
             if mode == 'xy':
-                return float(value) * unit_convert[unit] * self.viewport.x # FIXME
+                return float(value) * unit_convert[unit] * self.viewport.x  # FIXME
 
         return float(value) * unit_convert[unit]
 
     def xlength(self, x):
         return self.length(x, 'x')
+
     def ylength(self, y):
         return self.length(y, 'y')
 
@@ -172,7 +173,7 @@ class Transformable:
         flat = copy.deepcopy(self.items)
         while i < len(flat):
             while isinstance(flat[i], Group):
-                flat[i:i+1] = flat[i].items
+                flat[i:i + 1] = flat[i].items
             i += 1
         return flat
 
@@ -191,8 +192,10 @@ class Transformable:
             x.rotate(angle)
         return self
 
+
 class Svg(Transformable):
     '''SVG class: use parse to parse a file'''
+
     # class Svg handles the <svg> tag
     # tag = 'svg'
 
@@ -275,7 +278,8 @@ class Group(Transformable):
         return '<Group ' + self.id + '>: ' + repr(self.items)
 
     def json(self):
-        return {'Group ' + self.id : self.items}
+        return {'Group ' + self.id: self.items}
+
 
 class Matrix:
     ''' SVG transformation matrix and its operations
@@ -308,7 +312,7 @@ class Matrix:
         elif isinstance(other, Point):
             x = other.x * self.vect[0] + other.y * self.vect[2] + self.vect[4]
             y = other.x * self.vect[1] + other.y * self.vect[3] + self.vect[5]
-            return Point(x,y)
+            return Point(x, y)
 
         else:
             return NotImplemented
@@ -318,11 +322,13 @@ class Matrix:
 
     def xlength(self, x):
         return x * self.vect[0]
+
     def ylength(self, y):
         return y * self.vect[3]
 
 
 COMMANDS = 'MmZzLlHhVvCcSsQqTtAa'
+
 
 class Path(Transformable):
     '''SVG <path>'''
@@ -344,7 +350,7 @@ class Path(Transformable):
         pathlst.reverse()
 
         command = None
-        current_pt = Point(0,0)
+        current_pt = Point(0, 0)
         start_pt = None
 
         while pathlst:
@@ -358,7 +364,7 @@ class Path(Transformable):
                     raise ValueError("No command found at %d" % len(pathlst))
 
             if command == 'M':
-            # MoveTo
+                # MoveTo
                 x = pathlst.pop()
                 y = pathlst.pop()
                 pt = Point(x, y)
@@ -374,19 +380,18 @@ class Path(Transformable):
                 command = 'L'
 
             elif command == 'Z':
-            # Close Path
+                # Close Path
                 l = Segment(current_pt, start_pt)
                 self.items.append(l)
                 current_pt = start_pt
 
-
             elif command in 'LHV':
-            # LineTo, Horizontal & Vertical line
+                # LineTo, Horizontal & Vertical line
                 # extra coord for H,V
                 if absolute:
-                    x,y = current_pt.coord()
+                    x, y = current_pt.coord()
                 else:
-                    x,y = (0,0)
+                    x, y = (0, 0)
 
                 if command in 'LH':
                     x = pathlst.pop()
@@ -401,10 +406,10 @@ class Path(Transformable):
                 current_pt = pt
 
             elif command in 'CQ':
-                dimension = {'Q':3, 'C':4}
+                dimension = {'Q': 3, 'C': 4}
                 bezier_pts = []
                 bezier_pts.append(current_pt)
-                for i in range(1,dimension[command]):
+                for i in range(1, dimension[command]):
                     x = pathlst.pop()
                     y = pathlst.pop()
                     pt = Point(x, y)
@@ -417,11 +422,11 @@ class Path(Transformable):
 
             elif command in 'TS':
                 # number of points to read
-                nbpts = {'T':1, 'S':2}
+                nbpts = {'T': 1, 'S': 2}
                 # the control point, from previous Bezier to mirror
-                ctrlpt = {'T':1, 'S':2}
+                ctrlpt = {'T': 1, 'S': 2}
                 # last command control
-                last = {'T': 'QT', 'S':'CS'}
+                last = {'T': 'QT', 'S': 'CS'}
 
                 bezier_pts = []
                 bezier_pts.append(current_pt)
@@ -434,7 +439,7 @@ class Path(Transformable):
                 # Symetrical of pt1 against pt0
                 bezier_pts.append(pt1 + pt1 - pt0)
 
-                for i in range(0,nbpts[command]):
+                for i in range(0, nbpts[command]):
                     x = pathlst.pop()
                     y = pathlst.pop()
                     pt = Point(x, y)
@@ -456,19 +461,20 @@ class Path(Transformable):
                     print('Arc parsing failure')
                     break
 
-                if len(flags) > 1:  flags = flags[1:].strip()
-                else:               flags = pathlst.pop().strip()
+                if len(flags) > 1: flags = flags[1:].strip()
+                else: flags = pathlst.pop().strip()
                 sweep_flag = flags[0]
                 if sweep_flag not in '01':
                     print('Arc parsing failure')
                     break
 
-                if len(flags) > 1:  x = flags[1:]
-                else:               x = pathlst.pop()
+                if len(flags) > 1: x = flags[1:]
+                else: x = pathlst.pop()
                 y = pathlst.pop()
                 # TODO
-                print('ARC: ' +
-                    ', '.join([rx, ry, xrot, large_arc_flag, sweep_flag, x, y]))
+                print('ARC: ' + ', '.join([rx, ry, xrot, large_arc_flag, sweep_flag, x, y]))
+
+
 #                self.items.append(
 #                    Arc(rx, ry, xrot, large_arc_flag, sweep_flag, Point(x, y)))
 
@@ -486,8 +492,7 @@ class Path(Transformable):
            A segment is a list of Points'''
         ret = []
         # group items separated by MoveTo
-        for moveTo, group in itertools.groupby(self.items,
-                lambda x: isinstance(x, MoveTo)):
+        for moveTo, group in itertools.groupby(self.items, lambda x: isinstance(x, MoveTo)):
             # Use only non MoveTo item
             if not moveTo:
                 # Generate segments for each relevant item
@@ -506,6 +511,7 @@ class Path(Transformable):
 
         return ret
 
+
 class Ellipse(Transformable):
     '''SVG <ellipse>'''
     # class Ellipse handles the <ellipse> tag
@@ -514,8 +520,7 @@ class Ellipse(Transformable):
     def __init__(self, elt=None):
         Transformable.__init__(self, elt)
         if elt is not None:
-            self.center = Point(self.xlength(elt.get('cx')),
-                                self.ylength(elt.get('cy')))
+            self.center = Point(self.xlength(elt.get('cx')), self.ylength(elt.get('cy')))
             self.rx = self.length(elt.get('rx'))
             self.ry = self.length(elt.get('ry'))
             self.style = elt.get('style')
@@ -538,8 +543,10 @@ class Ellipse(Transformable):
         self.center *= ratio
         self.rx *= ratio
         self.ry *= ratio
+
     def translate(self, offset):
         self.center += offset
+
     def rotate(self, angle):
         self.center = self.center.rot(angle)
 
@@ -547,27 +554,28 @@ class Ellipse(Transformable):
         '''Return a Point on the Ellipse for t in [0..1]'''
         x = self.center.x + self.rx * math.cos(2 * math.pi * t)
         y = self.center.y + self.ry * math.sin(2 * math.pi * t)
-        return Point(x,y)
+        return Point(x, y)
 
     def segments(self, precision=0):
         if max(self.rx, self.ry) < precision:
             return [[self.center]]
 
-        p = [(0,self.P(0)), (1, self.P(1))]
+        p = [(0, self.P(0)), (1, self.P(1))]
         d = 2 * max(self.rx, self.ry)
 
         while d > precision:
-            for (t1,p1),(t2,p2) in zip(p[:-1],p[1:]):
-                t = t1 + (t2 - t1)/2.
+            for (t1, p1), (t2, p2) in zip(p[:-1], p[1:]):
+                t = t1 + (t2 - t1) / 2.
                 d = Segment(p1, p2).pdistance(self.P(t))
                 p.append((t, self.P(t)))
             p.sort(key=operator.itemgetter(0))
 
-        ret = [x for t,x in p]
+        ret = [x for t, x in p]
         return [ret]
 
     def simplify(self, precision):
         return self
+
 
 # A circle is a special type of ellipse where rx = ry = radius
 class Circle(Ellipse):
@@ -584,6 +592,7 @@ class Circle(Ellipse):
     def __repr__(self):
         return '<Circle ' + self.id + '>'
 
+
 class Rect(Transformable):
     '''SVG <rect>'''
     # class Rect handles the <rect> tag
@@ -592,8 +601,7 @@ class Rect(Transformable):
     def __init__(self, elt=None):
         Transformable.__init__(self, elt)
         if elt is not None:
-            self.P1 = Point(self.xlength(elt.get('x')),
-                            self.ylength(elt.get('y')))
+            self.P1 = Point(self.xlength(elt.get('x')), self.ylength(elt.get('y')))
 
             self.P2 = Point(self.P1.x + self.xlength(elt.get('width')),
                             self.P1.y + self.ylength(elt.get('height')))
@@ -608,7 +616,7 @@ class Rect(Transformable):
         ymin = min([p.y for p in (self.P1, self.P2)])
         ymax = max([p.y for p in (self.P1, self.P2)])
 
-        return (Point(xmin,ymin), Point(xmax,ymax))
+        return (Point(xmin, ymin), Point(xmax, ymax))
 
     def transform(self, matrix):
         self.P1 = self.matrix * self.P1
@@ -625,6 +633,7 @@ class Rect(Transformable):
 
     def simplify(self, precision):
         return self.segments(precision)
+
 
 class Polyline(Transformable):
     '''SVG <Polyline>'''
@@ -649,7 +658,7 @@ class Polyline(Transformable):
         ymin = min([p.y for p in self.points])
         ymax = max([p.y for p in self.points])
 
-        return (Point(xmin,ymin), Point(xmax,ymax))
+        return (Point(xmin, ymin), Point(xmax, ymax))
 
     def transform(self, matrix):
         for p in self.points:
@@ -670,10 +679,8 @@ class Line(Transformable):
     def __init__(self, elt=None):
         Transformable.__init__(self, elt)
         if elt is not None:
-            self.P1 = Point(self.xlength(elt.get('x1')),
-                            self.ylength(elt.get('y1')))
-            self.P2 = Point(self.xlength(elt.get('x2')),
-                            self.ylength(elt.get('y2')))
+            self.P1 = Point(self.xlength(elt.get('x1')), self.ylength(elt.get('y1')))
+            self.P2 = Point(self.xlength(elt.get('x2')), self.ylength(elt.get('y2')))
             self.segment = Segment(self.P1, self.P2)
 
     def __repr__(self):
@@ -686,7 +693,7 @@ class Line(Transformable):
         ymin = min([p.y for p in (self.P1, self.P2)])
         ymax = max([p.y for p in (self.P1, self.P2)])
 
-        return (Point(xmin,ymin), Point(xmax,ymax))
+        return (Point(xmin, ymin), Point(xmax, ymax))
 
     def transform(self, matrix):
         self.P1 = self.matrix * self.P1
@@ -699,6 +706,7 @@ class Line(Transformable):
     def simplify(self, precision):
         return self.segments(precision)
 
+
 # overwrite JSONEncoder for svg classes which have defined a .json() method
 class JSONEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -709,6 +717,7 @@ class JSONEncoder(json.JSONEncoder):
             return repr(obj)
 
         return obj.json()
+
 
 ## Code executed on module load ##
 
